@@ -37,40 +37,43 @@ def compute_input(image: np.ndarray) -> np.ndarray:
 
 
 def get_boxes(y_pred, detection_threshold=0.7, text_threshold=0.4, link_threshold=0.4, size_threshold=10):
-    """Word boxes, four corners each in input pixels, from CRAFT's text and link heatmaps."""
+    """Word boxes, four corners each in input pixels, from CRAFT's text and link heatmaps.
+
+    The boxes are keras-ocr's exactly, but each component is worked on inside its own window
+    (its bounding box, the dilation margin and a zero border) rather than over the whole map,
+    which keras-ocr and CRAFT redo once per component.
+    """
     box_groups = []
     for y_pred_cur in y_pred:
-        textmap = y_pred_cur[..., 0].copy()
-        linkmap = y_pred_cur[..., 1].copy()
+        textmap = y_pred_cur[..., 0]
+        linkmap = y_pred_cur[..., 1]
         img_h, img_w = textmap.shape
         _, text_score = cv2.threshold(textmap, thresh=text_threshold, maxval=1, type=cv2.THRESH_BINARY)
         _, link_score = cv2.threshold(linkmap, thresh=link_threshold, maxval=1, type=cv2.THRESH_BINARY)
-        n_components, labels, stats, _ = cv2.connectedComponentsWithStats(
+        _, labels, stats, _ = cv2.connectedComponentsWithStats(
             np.clip(text_score + link_score, 0, 1).astype("uint8"), connectivity=4
         )
+        keep = ~np.logical_and(link_score, text_score)  # pixels both text and link are cut from every word
         boxes = []
-        for component_id in range(1, n_components):
-            size = stats[component_id, cv2.CC_STAT_AREA]
-            if size < size_threshold:
+        for component_id in np.flatnonzero(stats[:, cv2.CC_STAT_AREA] >= size_threshold):
+            if component_id == 0:  # the background
                 continue
+            x, y, w, h, size = stats[component_id]
             # A component whose strongest text score is below the detection threshold is not a word.
-            if np.max(textmap[labels == component_id]) < detection_threshold:
+            bounds = (slice(y, y + h), slice(x, x + w))
+            if textmap[bounds][labels[bounds] == component_id].max() < detection_threshold:
                 continue
-            segmap = np.zeros_like(textmap)
-            segmap[labels == component_id] = 255
-            segmap[np.logical_and(link_score, text_score)] = 0
-            x, y, w, h = (
-                stats[component_id, key]
-                for key in (cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT)
-            )
             niter = int(np.sqrt(size * min(w, h) / (w * h)) * 2)
             sx, sy = max(x - niter, 0), max(y - niter, 0)
             ex, ey = min(x + w + niter + 1, img_w), min(y + h + niter + 1, img_h)
-            segmap[sy:ey, sx:ex] = cv2.dilate(
-                segmap[sy:ey, sx:ex], cv2.getStructuringElement(cv2.MORPH_RECT, (1 + niter, 1 + niter))
-            )
-            contours = cv2.findContours(segmap.astype("uint8"), mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)[-2]
-            contour = contours[0]
+            # One pixel more where the map goes on, so findContours meets zeros where the map did.
+            wx, wy = max(sx - 1, 0), max(sy - 1, 0)
+            window = (slice(wy, min(ey + 1, img_h)), slice(wx, min(ex + 1, img_w)))
+            segmap = np.where((labels[window] == component_id) & keep[window], 255, 0).astype("uint8")
+            inner = (slice(sy - wy, ey - wy), slice(sx - wx, ex - wx))
+            segmap[inner] = cv2.dilate(segmap[inner], cv2.getStructuringElement(cv2.MORPH_RECT, (1 + niter, 1 + niter)))
+            contours = cv2.findContours(segmap, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)[-2]
+            contour = contours[0] + np.array([wx, wy], dtype=contours[0].dtype)  # back to map pixels
             box = cv2.boxPoints(cv2.minAreaRect(contour))
             w, h = np.linalg.norm(box[0] - box[1]), np.linalg.norm(box[1] - box[2])
             box_ratio = max(w, h) / (min(w, h) + 1e-5)
