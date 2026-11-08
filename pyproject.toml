@@ -29,7 +29,9 @@ keywords = ["ocr", "engineering-drawing", "mechanical-drawing", "gd&t", "pytorch
 
 [project.optional-dependencies]
 pdf = ["pdf2image>=1.16"]
-dev = ["pytest>=8", "ruff>=0.6"]
+# training/ draws its synthetic text with Pillow.
+train = ["pillow>=9"]
+dev = ["pillow>=9", "pytest>=8", "ruff>=0.6"]
 
 [project.urls]
 Homepage = "https://github.com/FutureworkLabCorp/eDOCr2-pytorch"
@@ -44,8 +46,9 @@ packages = ["edocr2"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]  # tests import training/, which is not installed
 
 [tool.ruff]
 line-length = 120
-# eDOCr2's pipeline code, kept as it was so that its history and outputs stay comparable.
-extend-exclude = ["edocr2/tools"]
+# eDOCr2's and keras-ocr's code, kept as it was so that its history and outputs stay comparable.
+extend-exclude = ["edocr2/tools", "training/synth.py", "training/metrics.py", "contrib"]
