@@ -1,11 +1,13 @@
-"""On the CPU the detector folds CRAFT's batch norms without changing what CRAFT computes.
+"""On the CPU and MPS the detector folds CRAFT's batch norms without changing what CRAFT computes.
 
-Needs ``craft_mlt_25k.pth``, fetched once into the cache or read from EDOCR2_WEIGHTS_DIR.
+Needs ``craft_mlt_25k.pth``, fetched once into the cache or read from EDOCR2_WEIGHTS_DIR. Checks
+MPS as well when present.
 """
 
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import torch
 from torch import nn
 
@@ -17,11 +19,13 @@ def _batch_norms(model: nn.Module) -> int:
     return sum(isinstance(module, nn.BatchNorm2d) for module in model.modules())
 
 
-def test_cpu_detector_folds_batch_norms_and_keeps_the_heatmaps():
-    detector = Detector(device="cpu")
+@pytest.mark.parametrize("device", ["cpu"] + ["mps"] * torch.backends.mps.is_available())
+def test_detector_folds_batch_norms_and_keeps_the_heatmaps(device):
+    detector = Detector(device=device)
     images = np.random.default_rng(0).normal(size=(2, 96, 128, 3)).astype("float32")
+    x = torch.from_numpy(images).permute(0, 3, 1, 2).contiguous().to(device)
     with torch.inference_mode():
-        expected = load_craft().eval()(torch.from_numpy(images).permute(0, 3, 1, 2).contiguous())[0].numpy()
+        expected = load_craft().eval().to(device)(x)[0].cpu().numpy()
     assert _batch_norms(detector.model) == 0
     np.testing.assert_allclose(detector.predict(images), expected, atol=1e-4)
 
