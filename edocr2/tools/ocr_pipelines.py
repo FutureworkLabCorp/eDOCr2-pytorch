@@ -247,7 +247,7 @@ class Pipeline:
         from shapely.ops import unary_union
         mask_img = img.copy()
         old_dim, new_dimensions, boxes = [], [], []
-        folder_path = os.path.join('edocr2/tools/symbol_match', folder_code)
+        folder_path = os.path.join(os.path.dirname(__file__), 'symbol_match', folder_code)
         for dim in dimensions:
             #filter out dim wit diameter symbol:
             if char in dim[0]:
@@ -322,7 +322,7 @@ class Pipeline:
         Returns:
             A list of lists of (text, box) tuples.
         """ 
-        from edocr2.keras_ocr.tools import adjust_boxes
+        from ..ocr_utils import adjust_boxes
 
         if np.max((img.shape[0], img.shape[1])) < self.max_size / self.scale:
             scale = self.scale
@@ -383,7 +383,7 @@ class Pipeline:
         pred_nor = self.ocr_the_rest(img, 'nor') #Norwegian include a char for the o-slash (Ø and ø) Convinient for the diameter recognition ⌀
         pred_eng = self.ocr_the_rest(img, 'eng') #However, its performance is worse than english, can't trust it
         allowed_exceptions_nor = set('''-.»Ø,/!«Æ()Å:'"[];|“?Ö=*Ä”&É<>+$£%—€øåæöéIZNOoPXiLlk \n''')
-        allowed_exceptions_eng = set('''?—!@#~;¢«#_%\&€$»[é]®§¥©‘™="~'£<*“”I|ZNOXiLlk \n''')
+        allowed_exceptions_eng = set('''?—!@#~;¢«#_%\\&€$»[é]®§¥©‘™="~'£<*“”I|ZNOXiLlk \n''')
         ok_nor = all(char in set(self.alphabet_dimensions) or char in allowed_exceptions_nor for char in pred_nor)
         ok_eng = all(char in set(self.alphabet_dimensions) or char in allowed_exceptions_eng for char in pred_eng)
         if ok_nor or ok_eng or len(pred_eng) < 2 or len(pred_nor) < 2:
@@ -872,7 +872,7 @@ def ocr_dimensions(img, detector, recognizer, alphabet_dim, frame, dim_boxes = [
     # Save the image
     if backg_save:
         
-        backg_path = os.path.join(os.getcwd(), 'edocr2/tools/backgrounds')
+        backg_path = os.path.join(os.getcwd(), 'backgrounds')
         os.makedirs(backg_path, exist_ok=True)
         i = 0
         for root_dir, cur_dir, files in os.walk(backg_path):

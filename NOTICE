@@ -1,0 +1,23 @@
+eDOCr2-pytorch
+Copyright (c) 2026 the eDOCr2-pytorch contributors. MIT License (see LICENSE).
+
+eDOCr2-pytorch is eDOCr2 ported to PyTorch, without TensorFlow. It contains, or depends on, the works below; each
+is under the MIT License, whose text is in LICENSE.
+
+eDOCr2 - https://github.com/javvi51/edocr2
+    Copyright (c) 2024 javvi51 (Javier Villena Toro, Design Automation Lab, Linkoping University).
+    The segmentation and OCR pipeline in edocr2/tools/ is eDOCr2's. eDOCr2's two recognizers
+    (release v1.0.0) are read from that release; eDOCr2-pytorch does not redistribute them.
+    eDOCr2 succeeds eDOCr (https://github.com/javvi51/eDOCr) by the same author.
+
+keras-ocr - https://github.com/faustomorales/keras-ocr
+    Fausto Morales.
+    edocr2/ocr_utils.py (box decoding, image fitting) is taken from keras-ocr, which eDOCr and
+    eDOCr2 include, and the recognizer in edocr2/models/crnn.py reproduces keras-ocr's network.
+
+CRAFT - https://github.com/clovaai/CRAFT-pytorch
+    Copyright (c) 2019-present NAVER Corp.
+    The text detector, used through the craft-detector package
+    (https://github.com/wkpark/CRAFT-pytorch). Its weights, craft_mlt_25k.pth, trained on
+    SynthText, IC13 and IC17, are fetched from that package's release v0.0.2, which holds the file
+    of CRAFT's original download, and are not redistributed by eDOCr2-pytorch.
