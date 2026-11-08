@@ -95,7 +95,8 @@ python -m training.train_detector --fonts training/dimension_fonts --samples 100
   reads it as it reads eDOCr2's `.keras` files. Like eDOCr2's, a new recognizer starts from
   keras-ocr's pretrained one without its output layer (`crnn_kurapan_notop.h5`, 35 MB, fetched
   from keras-ocr's release and checked by sha256 like the other weights); `--from-scratch` skips
-  it. `--pretrained recognizer_dimensions_2.keras` fine-tunes eDOCr2's recognizer instead; give it
+  it, though a recognizer started from scratch still output only blanks after 400 steps of 64.
+  `--pretrained recognizer_dimensions_2.keras` fine-tunes eDOCr2's recognizer instead; give it
   a lower `--lr` such as 1e-4, because Keras' default 1e-3 first unsettles a converged model.
 - The detector is saved as `OUT.pth`, which `edocr2.Detector("OUT.pth")` reads. As in eDOCr2, CRAFT
   learns one region per word, with no link map, on crops of eDOCr2's drawing backgrounds.
