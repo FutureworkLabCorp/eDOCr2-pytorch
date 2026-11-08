@@ -26,7 +26,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from edocr2 import Detector
+from edocr2.detector import load_craft
+from edocr2.device import resolve_device
 from edocr2.ocr_utils import compute_input
 from training import synth
 from training.train_recognizer import ALPHABETS
@@ -72,8 +73,8 @@ def train(
     device: str | None = None,
 ) -> Path:
     """Fine-tune CRAFT; returns the path of the best state dict."""
-    detector = Detector(pretrained, device)
-    model, device = detector.model.train(), detector.device
+    device = resolve_device(device)
+    model = load_craft(pretrained).to(device).train()
     # keras-ocr gives its VGG blocks PyTorch's batch-norm momentum 0.1, which Keras reads the other way
     # round: torch's 0.9. Its upsampling blocks' Keras 0.9 is torch's default already.
     for name, module in model.named_modules():
