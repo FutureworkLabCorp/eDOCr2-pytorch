@@ -1,0 +1,52 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The golden outputs were read with Tesseract 5.5 and tessdata_fast 4.1.0's eng and nor (the
+      # dimension filter asks for nor); with Ubuntu's own language packages six of the seven
+      # title blocks read differently. libGL is for opencv-python.
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr libgl1
+          tesseract --version | head -1
+          mkdir -p tessdata
+          for lang in eng nor; do
+            curl -sSfL -o tessdata/$lang.traineddata \
+              https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/4.1.0/$lang.traineddata
+          done
+          sha256sum -c <<'EOF'
+          7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2  tessdata/eng.traineddata
+          0451eb4f8049ae78196806bf878a389a2f40f1386fe038568cf4441226ba6ef2  tessdata/nor.traineddata
+          EOF
+      - run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev]"
+      - uses: actions/cache@v4
+        id: weights
+        with:
+          path: weights
+          key: edocr2-pytorch-weights-${{ hashFiles('edocr2/weights.py') }}
+      # Fetched through the API, which eDOCr2-pytorch's offline mode then checks by sha256: the
+      # github.com/<repo>/releases/download route answered 504 for every asset on 2026-11-08.
+      - if: steps.weights.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.0.2 --repo wkpark/CRAFT-pytorch -p craft_mlt_25k.pth -D weights
+          gh release download v1.0.0 --repo javvi51/edocr2 -p 'recognizer_*' -D weights
+      - run: ruff check edocr2 tests && ruff format --check edocr2 tests
+      - run: pytest -q
+        env:
+          EDOCR2_WEIGHTS_DIR: weights
+          TESSDATA_PREFIX: ${{ github.workspace }}/tessdata

@@ -1,28 +1,51 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "edocr2"
-version = "0.0.1"
-authors = [
-  { name="Javier Villena Toro" },
-]
-description = "OCR for Engineering Mechanical Drawings"
+name = "edocr2-pytorch"
+version = "0.1.0.dev0"
+description = "Read dimensions, GD&T frames and title blocks on mechanical engineering drawings, in PyTorch"
 readme = "README.md"
-requires-python = ">=3.7"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Javier Villena Toro" }]
+maintainers = [{ name = "Won-Kyu Park" }]
+dependencies = [
+    "craft-detector>=0.2.1",
+    "h5py>=3.8",
+    "numpy>=1.24",
+    "opencv-python>=4.8",
+    "pytesseract>=0.3.10",
+    "scipy>=1.10",
+    "shapely>=2.0",
+    "torch>=2.3",
 ]
-dynamic = ["dependencies"]
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Manufacturing",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+keywords = ["ocr", "engineering-drawing", "mechanical-drawing", "gd&t", "pytorch", "craft"]
+
+[project.optional-dependencies]
+pdf = ["pdf2image>=1.16"]
+dev = ["pytest>=8", "ruff>=0.6"]
 
 [project.urls]
-"Homepage" = "https://github.com/javvi51/edocr2"
-"Bug Tracker" = "https://github.com/javvi51/edocr2/issues"
+Homepage = "https://github.com/FutureworkLabCorp/eDOCr2-pytorch"
+Upstream = "https://github.com/javvi51/edocr2"
 
-[tool.setuptools]
-include-package-data = false
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["edocr2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+# eDOCr2's pipeline code, kept as it was so that its history and outputs stay comparable.
+extend-exclude = ["edocr2/tools"]

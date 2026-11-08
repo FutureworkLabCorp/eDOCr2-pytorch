@@ -1,0 +1,30 @@
+{
+ "tables": [
+  "Tolerance, if not indicated acc. to / General surface finish /generell ytstruktur Contact information/Kontaktinformation |Weight /vikt generella toleranser dar ej annat anges enligt ISO 2768-mK Ra 3,2 18.19 g Date/datum Created by/ritad av Rev. by/Gransk. av ‘Appr. by/Godk. av Group/Grupp <1 A) 2021-10-15 Verkstad TY Material Format Surface treatment /Ytbehandling EN AW-6082 A4 Anodiserad 15-20um Kulor: Natur IScale/skala 2:1 LINKOPING Description/benimning Drawing number /ritningsnummer Revision UNIVERSITY A lu Kolv LiU0010 |Sheet /sida Cykelpump ai",
+  "2 REVISION 7 Rev. Change description/Andringsbeskrivning Date/Datum Sign."
+ ],
+ "gdt": [],
+ "dimensions": [
+  "0,8 @919,486,919,535,950,535,950,486",
+  "1,6 @1019,393,1019,424,1061,424,1061,393",
+  "1,6 @1034,660,1034,691,1080,691,1080,660",
+  "12,5) @633,418,633,452,714,452,714,418",
+  "15 @628,495,628,523,664,523,664,495",
+  "16 @913,1420,913,1450,950,1450,950,1420",
+  "2 @761,972,761,994,778,994,778,972",
+  "2,5 +0., 0 @1325,491,1325,582,1361,582,1361,491",
+  "20 @881,1504,881,1534,921,1534,921,1504",
+  "20° @502,1083,513,1135,540,1129,530,1078",
+  "25 @627,652,627,681,664,681,664,652",
+  "2xR0,15 @1196,386,1196,419,1325,419,1325,386",
+  "2xR0,2 @1011,579,1011,613,1120,613,1120,579",
+  "2x⌀19,9 0 :0,1 @415,792,227,799,229,841,417,834",
+  "A 20:1 @955,892,955,982,1070,982,1070,892",
+  "M8 @1116,1342,1116,1396,1144,1396,1144,1342",
+  "⌀16,5 +0,1 0 @257,723,257,761,397,761,397,723"
+ ],
+ "other": [
+  " @532,393,532,427,568,427,568,393",
+  "A-A @864,1586,864,1623,937,1623,937,1586"
+ ]
+}
