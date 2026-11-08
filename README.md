@@ -25,9 +25,12 @@ official release of eDOCr2.
 - **Reading many drawings in one process works.** On Keras, a predict graph traced on one
   drawing's patches could fail on the next drawing's.
 - The symbol templates load from the installed package, not from the working directory.
-- Removed: recognizer and detector training and synthetic data generation, which were TensorFlow
-  code (training may come back in PyTorch), and the VLM helpers (`llm_tools.py`: Qwen2-VL through
-  transformers, GPT-4o through the OpenAI API), which sit outside the OCR pipeline.
+- Kept where eDOCr2 has them, but not imported by the package: the training and synthetic data
+  tools (`edocr2/tools/train_tools.py`, with their fonts and drawing backgrounds) and the VLM
+  helpers (`edocr2/tools/llm_tools.py`: Qwen2-VL through transformers, GPT-4o through the OpenAI
+  API). Training needs eDOCr2's TensorFlow `keras_ocr`, removed here, so it does not run; these
+  tools are to move out of the package in a later change. Segoe UI Symbol (`SEGUISYM.TTF`), a
+  Microsoft font that may not be redistributed, is removed from the fonts.
 
 ## Install
 

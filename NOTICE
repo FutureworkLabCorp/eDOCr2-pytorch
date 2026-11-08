@@ -1,12 +1,13 @@
 eDOCr2-pytorch
 Copyright (c) 2026 the eDOCr2-pytorch contributors. MIT License (see LICENSE).
 
-eDOCr2-pytorch is eDOCr2 ported to PyTorch, without TensorFlow. It contains, or depends on, the works below; each
-is under the MIT License, whose text is in LICENSE.
+eDOCr2-pytorch is eDOCr2 ported to PyTorch, without TensorFlow. It contains, or depends on, the works below. The
+software is under the MIT License, whose text is in LICENSE; the fonts listed last are under their own terms.
 
 eDOCr2 - https://github.com/javvi51/edocr2
     Copyright (c) 2024 javvi51 (Javier Villena Toro, Design Automation Lab, Linkoping University).
-    The segmentation and OCR pipeline in edocr2/tools/ is eDOCr2's. eDOCr2's two recognizers
+    The segmentation and OCR pipeline in edocr2/tools/ is eDOCr2's, as are the training tools,
+    drawing backgrounds and VLM helpers kept there. eDOCr2's two recognizers
     (release v1.0.0) are read from that release; eDOCr2-pytorch does not redistribute them.
     eDOCr2 succeeds eDOCr (https://github.com/javvi51/eDOCr) by the same author.
 
@@ -21,3 +22,13 @@ CRAFT - https://github.com/clovaai/CRAFT-pytorch
     (https://github.com/wkpark/CRAFT-pytorch). Its weights, craft_mlt_25k.pth, trained on
     SynthText, IC13 and IC17, are fetched from that package's release v0.0.2, which holds the file
     of CRAFT's original download, and are not redistributed by eDOCr2-pytorch.
+
+Fonts - edocr2/tools/dimension_fonts/ and edocr2/tools/gdt_fonts/, used only by eDOCr2's training tools
+    Each font carries its copyright and license in its name table.
+    Cardo-Regular.ttf: Copyright (c) 2002-2011, David J. Perry. SIL Open Font License 1.1
+    (http://scripts.sil.org/OFL).
+    Mplus1p-Regular.ttf: Copyright 2016 The M+ Project Authors. SIL Open Font License 1.1.
+    RoundedMplus1c-Regular.ttf: Copyright 2016 The Rounded M+ Project Authors. SIL Open Font
+    License 1.1.
+    Symbola.ttf: Unicode Fonts for Ancient Scripts, George Douros, 2015 (version 7.21), "free for
+    any use".
