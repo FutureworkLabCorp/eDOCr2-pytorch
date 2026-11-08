@@ -74,6 +74,11 @@ def train(
     """Fine-tune CRAFT; returns the path of the best state dict."""
     detector = Detector(pretrained, device)
     model, device = detector.model.train(), detector.device
+    # keras-ocr gives its VGG blocks PyTorch's batch-norm momentum 0.1, which Keras reads the other way
+    # round: torch's 0.9. Its upsampling blocks' Keras 0.9 is torch's default already.
+    for name, module in model.named_modules():
+        if name.startswith("basenet.") and isinstance(module, torch.nn.BatchNorm2d):
+            module.momentum = 0.9
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, eps=1e-7)  # Keras' defaults but lr
     heatmap = synth.get_gaussian_heatmap(size=512, distanceRatio=1.5)  # keras-ocr's batch generator's
     train_samples = drawing_samples(alphabet, fonts, samples, string_length)
