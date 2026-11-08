@@ -47,5 +47,5 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-# eDOCr2's pipeline code, kept as it was so that its history and outputs stay comparable.
-extend-exclude = ["edocr2/tools"]
+# eDOCr2's own code, kept as it was so that its history and outputs stay comparable.
+extend-exclude = ["edocr2/tools", "training/train_tools.py", "contrib"]
