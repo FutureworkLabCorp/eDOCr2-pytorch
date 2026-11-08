@@ -6,15 +6,19 @@ software is under the MIT License, whose text is in LICENSE; the fonts listed la
 
 eDOCr2 - https://github.com/javvi51/edocr2
     Copyright (c) 2024 javvi51 (Javier Villena Toro, Design Automation Lab, Linkoping University).
-    The segmentation and OCR pipeline in edocr2/tools/ is eDOCr2's, as are the training tools and
-    drawing backgrounds in training/ and the VLM helpers in contrib/. eDOCr2's two recognizers
+    The segmentation and OCR pipeline in edocr2/tools/ is eDOCr2's, as are the drawing backgrounds,
+    the text generator, sample filter and background compositing in training/synth.py, the
+    evaluation helpers in training/metrics.py, and the VLM helpers in contrib/. eDOCr2's two recognizers
     (release v1.0.0) are read from that release; eDOCr2-pytorch does not redistribute them.
     eDOCr2 succeeds eDOCr (https://github.com/javvi51/eDOCr) by the same author.
 
 keras-ocr - https://github.com/faustomorales/keras-ocr
     Fausto Morales.
-    edocr2/ocr_utils.py (box decoding, image fitting) is taken from keras-ocr, which eDOCr and
-    eDOCr2 include, and the recognizer in edocr2/models/crnn.py reproduces keras-ocr's network.
+    edocr2/ocr_utils.py (box decoding, image fitting) and the synthetic text images and detector
+    target maps in training/synth.py are taken from keras-ocr, which eDOCr and eDOCr2 include, and
+    the recognizer in edocr2/models/crnn.py reproduces keras-ocr's network. training/ starts new
+    recognizers from keras-ocr's pretrained weights (crnn_kurapan_notop.h5, release v0.8.4), fetched
+    from that release and not redistributed.
 
 CRAFT - https://github.com/clovaai/CRAFT-pytorch
     Copyright (c) 2019-present NAVER Corp.

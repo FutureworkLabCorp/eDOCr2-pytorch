@@ -6,6 +6,9 @@ grayscale. Two of keras-ocr's quirks are kept on purpose, because eDOCr2 trained
 with them and changing either changes the answers: the transformer samples with keras-ocr's own
 bilinear sampler (`_stn_sample`), not ``grid_sample``; and each backward LSTM's output is added to
 the forward one in reversed time order, as Keras ``go_backwards`` leaves it.
+
+For training (``training/``) the module also keeps keras-ocr's dropout before the output layer and
+Keras' batch-norm momentum; neither changes what the network outputs in eval mode.
 """
 
 from __future__ import annotations
@@ -52,20 +55,27 @@ class CRNN(nn.Module):
     """Input (B, 31, 200, 1) in [0, 1], as keras-ocr's; output (B, 48, n_classes) softmax, blank last."""
 
     height, width = 31, 200
+    steps = 48  # output steps: 50 after the width is pooled four times, less the two discarded
 
     def __init__(self, n_classes: int, filters=(64, 128, 256, 256, 512, 512, 512), units: int = 128):
         super().__init__()
         self.n_classes = n_classes
         chans = (1, *filters)
         self.convs = nn.ModuleList(nn.Conv2d(chans[i], chans[i + 1], 3, padding=1) for i in range(7))
-        self.bns = nn.ModuleDict({str(i): nn.BatchNorm2d(filters[i], eps=1e-3) for i in (2, 4, 6)})
+        # Keras' momentum 0.99 keeps 99% of the running statistics per step; torch's 0.01 is the same.
+        self.bns = nn.ModuleDict({str(i): nn.BatchNorm2d(filters[i], eps=1e-3, momentum=0.01) for i in (2, 4, 6)})
         self.loc1, self.loc2 = nn.Conv2d(512, 16, 5, padding=2), nn.Conv2d(16, 32, 5, padding=2)
         self.loc3, self.loc4 = nn.Linear(50 * 7 * 32, 64), nn.Linear(64, 6)
         self.fc9 = nn.Linear(7 * 512, units)
         self.lstms = nn.ModuleList(nn.LSTM(units, units, batch_first=True) for _ in range(4))
+        self.dropout = nn.Dropout(0.25)
         self.fc12 = nn.Linear(2 * units, n_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return F.softmax(self.logits(x), -1)
+
+    def logits(self, x: torch.Tensor) -> torch.Tensor:
+        """The output layer before its softmax, (B, 48, n_classes): what a CTC loss takes."""
         x = x.permute(0, 2, 1, 3).flip(2).permute(0, 3, 1, 2)  # Keras Permute((2, 1, 3)), x[:, :, ::-1], to NCHW
         for i, conv in enumerate(self.convs):
             x = F.relu(conv(x))
@@ -77,7 +87,7 @@ class CRNN(nn.Module):
         x = F.relu(self.fc9(_stn_sample(x.permute(0, 2, 3, 1), theta).flatten(2)))
         x = self.lstms[0](x)[0] + self.lstms[1](x.flip(1))[0]  # go_backwards: the output stays reversed
         x = torch.cat([self.lstms[2](x)[0], self.lstms[3](x.flip(1))[0]], -1)
-        return F.softmax(self.fc12(x), -1)[:, 2:]  # keras-ocr discards the first two steps
+        return self.fc12(self.dropout(x))[:, 2:]  # keras-ocr discards the first two steps
 
 
 # Where each module's weights sit in a Keras 3 ``model.weights.h5``, which names layers by class.
@@ -100,7 +110,13 @@ _KERAS_LAYERS = {
 
 
 def load_crnn(path: str | Path) -> CRNN:
-    """The recognizer in an eDOCr2 ``.keras`` file, read with h5py."""
+    """The recognizer in an eDOCr2 ``.keras`` file, read with h5py, or in a state dict ``training/`` saved."""
+    if Path(path).suffix != ".keras":
+        state = torch.load(path, map_location="cpu", weights_only=True)
+        model = CRNN(n_classes=state["fc12.weight"].shape[0])
+        model.load_state_dict(state)
+        return model.eval()
+
     import h5py
 
     with zipfile.ZipFile(path) as archive:
@@ -113,12 +129,22 @@ def load_crnn(path: str | Path) -> CRNN:
             values = group["cell"]["vars"] if "cell" in group else group["vars"]
             return [np.asarray(values[str(i)]) for i in range(len(values))]
 
-        tensors = {name: arrays(name) for name in _KERAS_LAYERS}
-    model = CRNN(n_classes=tensors["dense_1"][1].shape[0])
+        tensors = {target: arrays(name) for name, target in _KERAS_LAYERS.items()}
+    model = CRNN(n_classes=tensors["fc12"][1].shape[0])
+    copy_keras_weights(model, tensors)
+    return model.eval()
+
+
+def copy_keras_weights(model: CRNN, tensors: dict[str, list[np.ndarray]]) -> None:
+    """Copy Keras layer weights, keyed by the module they belong to, into ``model``.
+
+    Each list is in Keras' order: kernel and bias; kernel, recurrent kernel and bias for an LSTM;
+    gamma, beta, moving mean and moving variance for a batch norm.
+    """
     with torch.no_grad():
-        for name, target in _KERAS_LAYERS.items():
+        for target, arrays in tensors.items():
             module = model.get_submodule(target)
-            values = [torch.from_numpy(np.ascontiguousarray(v)) for v in tensors[name]]
+            values = [torch.from_numpy(np.ascontiguousarray(v)) for v in arrays]
             if isinstance(module, nn.LSTM):  # kernel, recurrent kernel, bias; gate order i, f, c, o in both
                 module.weight_ih_l0.copy_(values[0].T)
                 module.weight_hh_l0.copy_(values[1].T)
@@ -135,4 +161,3 @@ def load_crnn(path: str | Path) -> CRNN:
             else:  # Linear: Keras (in, out)
                 module.weight.copy_(values[0].T)
                 module.bias.copy_(values[1])
-    return model.eval()

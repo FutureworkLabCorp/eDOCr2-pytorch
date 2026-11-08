@@ -25,10 +25,10 @@ official release of eDOCr2.
 - **Reading many drawings in one process works.** On Keras, a predict graph traced on one
   drawing's patches could fail on the next drawing's.
 - The symbol templates load from the installed package, not from the working directory.
-- Outside the installed package: eDOCr2's training and synthetic data tools, with their fonts and
-  drawing backgrounds, are in `training/`, and its VLM helpers (Qwen2-VL through transformers,
-  GPT-4o through the OpenAI API) in `contrib/llm_tools.py`. Segoe UI Symbol (`SEGUISYM.TTF`), a
-  Microsoft font that may not be redistributed, is removed from the fonts.
+- **Training runs on PyTorch too**, outside the installed package, in `training/` (see Training).
+  eDOCr2's VLM helpers (Qwen2-VL through transformers, GPT-4o through the OpenAI API) are kept as
+  they were in `contrib/llm_tools.py`. Segoe UI Symbol (`SEGUISYM.TTF`), a Microsoft font that may
+  not be redistributed, is removed from the training fonts.
 
 ## Install
 
@@ -75,6 +75,34 @@ add `frame.x` and `frame.y` to place them on the page.
 
 They are cached in `~/.cache/edocr2` (`EDOCR2_CACHE_DIR`). For an offline install, download the
 five files into a directory and set `EDOCR2_WEIGHTS_DIR`.
+
+## Training
+
+eDOCr2 trained its recognizers on synthetic text, and `training/` does the same without
+TensorFlow. Its data generators are eDOCr2's and keras-ocr's, copied unchanged
+(`training/synth.py`); eDOCr2's dimension recognizer reads the synthetic samples with a character
+error rate of 0.03%, which suggests the data matches what it was trained on. `training/` is not
+installed with the package: run it from a checkout.
+
+```bash
+pip install -e ".[train]"
+python -m training.train_recognizer --alphabet dimensions --fonts training/dimension_fonts \
+    --samples 25000 --epochs 3 --out models/recognizer_dimensions
+python -m training.train_detector --fonts training/dimension_fonts --samples 100 --out models/detector
+```
+
+- The recognizer is saved as `OUT.pt` with its alphabet in `OUT.txt`; `edocr2.Recognizer("OUT.pt")`
+  reads it as it reads eDOCr2's `.keras` files. Like eDOCr2's, a new recognizer starts from
+  keras-ocr's pretrained one without its output layer (`crnn_kurapan_notop.h5`, 35 MB, fetched
+  from keras-ocr's release and checked by sha256 like the other weights); `--from-scratch` skips
+  it. `--pretrained recognizer_dimensions_2.keras` fine-tunes eDOCr2's recognizer instead; give it
+  a lower `--lr` such as 1e-4, because Keras' default 1e-3 first unsettles a converged model.
+- The detector is saved as `OUT.pth`, which `edocr2.Detector("OUT.pth")` reads. As in eDOCr2, CRAFT
+  learns one region per word, with no link map, on crops of eDOCr2's drawing backgrounds.
+- GD&T training draws with Symbola alone now that Segoe UI Symbol is gone.
+- Not carried over from eDOCr2's `train_tools.py`: downloading and filtering keras-ocr's font
+  collection, writing sample images to disk, and the Keras evaluation wrappers. The CER and IoU
+  helpers are in `training/metrics.py`.
 
 ## Test
 
