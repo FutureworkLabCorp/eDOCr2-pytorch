@@ -45,17 +45,20 @@ class Detector:
     """Finds word boxes, as eDOCr2's pipeline calls keras-ocr's ``Detector``.
 
     ``weights`` is a CRAFT state dict, by default ``craft_mlt_25k.pth`` (`edocr2.weights`). On the
-    CPU the network has its batch norms folded and runs channels-last, the layout x86's oneDNN
-    convolutions prefer; neither was measured on CUDA or MPS, which run CRAFT as built. To train,
-    use `load_craft`'s model, which keeps its batch norms.
+    CPU and MPS the network has its batch norms folded. The CPU also runs it channels-last, the
+    layout x86's oneDNN convolutions prefer; on MPS channels-last ran slower. CUDA, not measured,
+    runs CRAFT as built. To train, use `load_craft`'s model, which keeps its batch norms.
     """
 
     def __init__(self, weights: str | Path | None = None, device: str | None = None):
         self.device = resolve_device(device)
-        self._channels_last = torch.device(self.device).type == "cpu"
+        kind = torch.device(self.device).type
+        self._channels_last = kind == "cpu"
         model = load_craft(weights).eval()
+        if kind in ("cpu", "mps"):
+            model = _fold_batch_norms(model)
         if self._channels_last:
-            model = _fold_batch_norms(model).to(memory_format=torch.channels_last)
+            model = model.to(memory_format=torch.channels_last)
         self.model = model.to(self.device)
 
     def predict(self, images: np.ndarray) -> np.ndarray:
