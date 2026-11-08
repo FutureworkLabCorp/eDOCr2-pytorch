@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import tempfile
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -82,9 +83,18 @@ def fetch(weight: Weight, directory: str | Path | None = None) -> Path:
         path = cache_dir() / weight.filename
         if not path.is_file() or _sha256(path) != weight.sha256:
             path.parent.mkdir(parents=True, exist_ok=True)
-            partial = path.with_name(path.name + ".part")
-            urllib.request.urlretrieve(weight.url, partial)
-            partial.replace(path)
+            # A file of its own per download: processes filling an empty cache at once never write
+            # into one file, and each puts the same checked bytes in place.
+            fd, partial = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".part")
+            os.close(fd)
+            try:
+                urllib.request.urlretrieve(weight.url, partial)
+                if _sha256(Path(partial)) != weight.sha256:
+                    raise ValueError(f"the download of {weight.url} does not match its sha256")
+                os.replace(partial, path)
+            finally:
+                if os.path.exists(partial):
+                    os.unlink(partial)
     if _sha256(path) != weight.sha256:
         raise ValueError(f"{path} does not match the sha256 of {weight.url}")
     return path
